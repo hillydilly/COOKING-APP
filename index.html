@@ -877,9 +877,9 @@
                 <div class="daily-header">
                     <div class="daily-date" id="current-date"></div>
                     <h1 class="daily-title">What's cooking today?</h1>
-                    <p class="daily-subtitle">Discover new recipes to try</p>
+                    <p class="daily-subtitle" id="daily-counter"></p>
                 </div>
-                <div id="daily-suggestions-grid" class="recipe-grid"></div>
+                <div class="suggestion-card" id="daily-suggestion"></div>
             </div>
 
             <!-- WEEKLY VIEW -->
@@ -1364,35 +1364,52 @@ function getDailyDiscoverSuggestions() {
 }
 
 // ===== DAILY VIEW =====
+let currentSuggestionIndex = 0;
+
 function renderDailyView() {
     document.getElementById('current-date').textContent = formatDate(new Date());
-    const grid = document.getElementById('daily-suggestions-grid');
+    const el = document.getElementById('daily-suggestion');
     
     const suggestions = getDailyDiscoverSuggestions();
     
     if (suggestions.length === 0) {
-        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">✨</div><h3 class="empty-state-title">You\'ve saved all our suggestions!</h3><p>Check back tomorrow for new ideas.</p></div>';
+        document.getElementById('daily-counter').textContent = '';
+        el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✨</div><h3 class="empty-state-title">You\'ve saved all our suggestions!</h3><p>Check back tomorrow for new ideas.</p></div>';
         return;
     }
     
-    grid.innerHTML = suggestions.map((disc, idx) => {
-        const time = (disc.prepTime || 0) + (disc.cookTime || 0);
-        const siteName = extractSiteName(disc.sourceUrl);
-        return `<div class="recipe-card discover-card">
-            <div class="card-meal-badge">${getMealTypeEmoji(disc.mealType)}</div>
-            <div class="recipe-card-image-placeholder" style="height:120px;font-size:2.5rem;">${getDiscoverEmoji(disc)}</div>
-            <div class="recipe-card-body">
-                <h3 class="recipe-card-name">${disc.name}</h3>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0.5rem;line-height:1.4;">${disc.description}</p>
-                <div class="recipe-card-meta"><span>⏱️ ${time}m</span><span>👥 ${disc.servings || 4}</span></div>
-                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">📍 ${siteName}</div>
-                <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
-                    <button class="btn btn-primary btn-small" onclick="addDiscoverRecipeByIndex(${idx})">+ Save</button>
-                    <a href="${disc.sourceUrl}" target="_blank" class="btn btn-secondary btn-small" onclick="event.stopPropagation()">View Recipe</a>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
+    // Keep index in bounds
+    if (currentSuggestionIndex >= suggestions.length) currentSuggestionIndex = 0;
+    
+    const disc = suggestions[currentSuggestionIndex];
+    const time = (disc.prepTime || 0) + (disc.cookTime || 0);
+    const siteName = extractSiteName(disc.sourceUrl);
+    const mealBadge = `<span class="meal-type-badge ${disc.mealType || 'dinner'}">${getMealTypeEmoji(disc.mealType)} ${(disc.mealType || 'dinner').charAt(0).toUpperCase() + (disc.mealType || 'dinner').slice(1)}</span>`;
+    
+    document.getElementById('daily-counter').textContent = `${currentSuggestionIndex + 1} of ${suggestions.length} suggestions today`;
+    
+    el.innerHTML = `<div class="suggestion-content"><div class="suggestion-details">
+        <div class="suggestion-label"><span>✨ Discover Something New</span></div>
+        <h2 class="suggestion-recipe-name">${disc.name}</h2>
+        <p class="discover-description">${disc.description}</p>
+        <div class="suggestion-meta">
+            ${mealBadge}
+            <span class="meta-item">⏱️ ${time} min</span>
+            <span class="meta-item">👥 ${disc.servings || 4}</span>
+        </div>
+        <div style="font-size:0.85rem;color:var(--text-muted);margin:0.5rem 0;">📍 ${siteName}</div>
+        <a href="${disc.sourceUrl}" target="_blank" class="source-link">🔗 View Full Recipe</a>
+        <div class="suggestion-actions" style="margin-top:var(--space-md)">
+            <button class="btn btn-primary btn-large" onclick="addDiscoverRecipeByIndex(${currentSuggestionIndex})">+ Save Recipe</button>
+            <button class="btn btn-secondary btn-large" onclick="nextDiscoverSuggestion()">✨ Discover New</button>
+        </div>
+    </div></div>`;
+}
+
+function nextDiscoverSuggestion() {
+    const suggestions = getDailyDiscoverSuggestions();
+    currentSuggestionIndex = (currentSuggestionIndex + 1) % suggestions.length;
+    renderDailyView();
 }
 
 function extractSiteName(url) {
@@ -1451,6 +1468,7 @@ async function addDiscoverRecipeByIndex(idx) {
     appData.recipes.push(newRecipe);
     showToast(`Saved "${recipe.name}"!`, 'success');
     showSyncIndicator('Synced ✓');
+    // After saving, the suggestions list will shrink — show next one
     renderDailyView();
     renderRecipesView();
 }
