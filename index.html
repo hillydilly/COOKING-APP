@@ -877,21 +877,9 @@
                 <div class="daily-header">
                     <div class="daily-date" id="current-date"></div>
                     <h1 class="daily-title">What's cooking today?</h1>
-                    <p class="daily-subtitle">Choose from your favorites or discover something new</p>
+                    <p class="daily-subtitle">Discover new recipes to try</p>
                 </div>
-                
-                <!-- Suggestion Buttons -->
-                <div class="suggestion-toggle">
-                    <button class="suggestion-toggle-btn active" data-type="favorite" onclick="setSuggestionType('favorite')">❤️ From Favorites</button>
-                    <button class="suggestion-toggle-btn" data-type="discover" onclick="setSuggestionType('discover')">✨ Discover New</button>
-                </div>
-                
-                <div class="suggestion-card" id="daily-suggestion"></div>
-                
-                <div class="favorites-section">
-                    <div class="section-header"><h2 class="section-title">Your Favorites</h2></div>
-                    <div class="recipe-grid" id="favorites-grid"></div>
-                </div>
+                <div id="daily-suggestions-grid" class="recipe-grid"></div>
             </div>
 
             <!-- WEEKLY VIEW -->
@@ -902,7 +890,10 @@
                         <h2 class="week-title" id="week-title">This Week</h2>
                         <button class="week-nav-btn" onclick="changeWeek(1)">→</button>
                     </div>
-                    <button class="btn btn-primary" onclick="generateWeeklyPlan()">✨ <span>Auto-fill Week</span></button>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                        <button class="btn btn-secondary" onclick="clearWeeklyPlan()">🗑️ Clear All</button>
+                        <button class="btn btn-primary" onclick="generateWeeklyPlan()">✨ <span>Auto-fill Week</span></button>
+                    </div>
                 </div>
                 <div class="week-grid" id="week-grid"></div>
             </div>
@@ -936,13 +927,13 @@
                 <div class="stats-bar">
                     <div class="stat-item"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total Recipes</div></div>
                     <div class="stat-item"><div class="stat-value" id="stat-available">0</div><div class="stat-label">Available Now</div></div>
-                    <div class="stat-item"><div class="stat-value" id="stat-favorites">0</div><div class="stat-label">Favorites</div></div>
+                    <div class="stat-item"><div class="stat-value" id="stat-favorites">0</div><div class="stat-label">Saved</div></div>
                     <div class="stat-item"><div class="stat-value" id="stat-rotation">21</div><div class="stat-label">Day Rotation</div></div>
                 </div>
                 <div class="filter-chips">
                     <button class="filter-chip active" data-filter="all">All</button>
                     <button class="filter-chip" data-filter="available">Available</button>
-                    <button class="filter-chip" data-filter="favorites">Favorites</button>
+                    <button class="filter-chip" data-filter="favorites">Saved</button>
                     <button class="filter-chip" data-filter="lunch">Lunch</button>
                     <button class="filter-chip" data-filter="dinner">Dinner</button>
                     <button class="filter-chip" data-filter="quick">Quick (&lt; 30 min)</button>
@@ -1175,7 +1166,6 @@ let currentWeekOffset = 0;
 let selectedDayForRecipe = null;
 let selectedMealSlot = null; // 'lunch' or 'dinner'
 let currentFilter = 'all';
-let suggestionType = 'favorite'; // 'favorite' or 'discover'
 let appData = { recipes: [], weeklyPlan: {}, checkedItems: [], pantryStock: [] };
 let pendingPhotoData = null; // Stores base64 photo data for stock items
 
@@ -1304,17 +1294,8 @@ function toggleMealType(btn, formPrefix) {
     document.getElementById(`${formPrefix}-mealType`).value = btn.dataset.meal;
 }
 
-// ===== SUGGESTION TYPE TOGGLE =====
-function setSuggestionType(type) {
-    suggestionType = type;
-    document.querySelectorAll('.suggestion-toggle-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.type === type);
-    });
-    renderDailyView();
-}
-
 // ===== DISCOVER NEW RECIPES =====
-// Actual recipes from dairy-free/gluten-free friendly sites
+// Recipes from dairy-free/gluten-free friendly sites
 const DISCOVER_RECIPES = [
     // Half Baked Harvest
     { name: 'Coconut Curry Shrimp', prepTime: 10, cookTime: 20, servings: 4, mealType: 'dinner', tags: ['dinner', 'seafood', 'thai', 'curry'], description: 'Creamy coconut curry with plump shrimp, bell peppers, and fresh basil served over rice.', sourceUrl: 'https://www.halfbakedharvest.com/coconut-curry-shrimp/' },
@@ -1346,10 +1327,20 @@ const DISCOVER_RECIPES = [
     { name: 'Teriyaki Salmon with Pineapple', prepTime: 10, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'seafood', 'asian', 'quick'], description: 'Glazed salmon with homemade teriyaki and caramelized pineapple rings.', sourceUrl: 'https://thedefineddish.com/teriyaki-salmon/' }
 ];
 
-function getDiscoverSuggestion() {
-    // Filter out recipes we already have by name similarity
+function getDailyDiscoverSuggestions() {
+    // Seed based on today's date so suggestions change daily but stay consistent within the day
+    const today = new Date();
+    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    
+    // Simple seeded random
+    function seededRandom(s) {
+        s = ((s * 9301 + 49297) % 233280);
+        return s / 233280;
+    }
+    
+    // Filter out recipes we already have saved
     const existingNames = appData.recipes.map(r => r.name.toLowerCase());
-    const newRecipes = DISCOVER_RECIPES.filter(r => {
+    const available = DISCOVER_RECIPES.filter(r => {
         const nameLower = r.name.toLowerCase();
         return !existingNames.some(existing => 
             existing.includes(nameLower) || nameLower.includes(existing) ||
@@ -1357,103 +1348,88 @@ function getDiscoverSuggestion() {
         );
     });
     
-    // Return a random new recipe or fallback to any discover recipe
-    const pool = newRecipes.length > 0 ? newRecipes : DISCOVER_RECIPES;
-    return pool[Math.floor(Math.random() * pool.length)];
+    const pool = available.length >= 10 ? available : DISCOVER_RECIPES;
+    
+    // Shuffle with daily seed
+    const shuffled = [...pool];
+    let s = seed;
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        s = ((s * 9301 + 49297) % 233280);
+        const j = Math.floor((s / 233280) * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    // Return 10-15 suggestions
+    return shuffled.slice(0, Math.min(15, shuffled.length));
 }
 
 // ===== DAILY VIEW =====
 function renderDailyView() {
     document.getElementById('current-date').textContent = formatDate(new Date());
+    const grid = document.getElementById('daily-suggestions-grid');
     
-    const el = document.getElementById('daily-suggestion');
+    const suggestions = getDailyDiscoverSuggestions();
     
-    if (suggestionType === 'discover') {
-        // Show a discovery suggestion (new recipe idea)
-        const disc = getDiscoverSuggestion();
-        const time = (disc.prepTime||0) + (disc.cookTime||0);
-        const mealBadge = `<span class="meal-type-badge ${disc.mealType || 'dinner'}">${getMealTypeEmoji(disc.mealType)} ${(disc.mealType || 'dinner').charAt(0).toUpperCase() + (disc.mealType || 'dinner').slice(1)}</span>`;
-        
-        el.innerHTML = `<div class="suggestion-content"><div class="suggestion-details">
-            <div class="suggestion-label"><span>✨ Discover Something New</span></div>
-            <h2 class="suggestion-recipe-name">${disc.name}</h2>
-            <p class="discover-description">${disc.description}</p>
-            <div class="suggestion-meta">
-                ${mealBadge}
-                <span class="meta-item">⏱️ ${time} min</span>
-                <span class="meta-item">👥 ${disc.servings||4}</span>
-            </div>
-            <div class="suggestion-tags">${(disc.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}<span class="tag dietary">Dairy-free</span><span class="tag dietary">Wheat-free</span></div>
-            <a href="${disc.sourceUrl}" target="_blank" class="source-link">🔗 View Full Recipe</a>
-            <div class="suggestion-actions" style="margin-top:var(--space-md)">
-                <button class="btn btn-primary btn-large" onclick="addDiscoverRecipe()">➕ Add to My Recipes</button>
-                <button class="btn btn-secondary btn-large" onclick="renderDailyView();showToast('New suggestion!','success')">🔄 Different</button>
-            </div>
-        </div></div>`;
-        
-        // Store current discover suggestion for adding
-        window.currentDiscoverSuggestion = disc;
-        
-        // Still render favorites section
-        const fg = document.getElementById('favorites-grid');
-        const fav = appData.recipes.filter(r => r.favorite);
-        fg.innerHTML = fav.length === 0 ? '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">💝</div><h3 class="empty-state-title">No favorites</h3></div>' : fav.map(renderRecipeCard).join('');
+    if (suggestions.length === 0) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">✨</div><h3 class="empty-state-title">You\'ve saved all our suggestions!</h3><p>Check back tomorrow for new ideas.</p></div>';
         return;
     }
     
-    // From favorites that are available
-    let pool = appData.recipes.filter(r => r.favorite && isRecipeAvailable(r));
-    if (pool.length === 0) pool = appData.recipes.filter(r => r.favorite); // Fall back to all favorites
-    const suggestionLabel = '❤️ From Your Favorites';
-    
-    const s = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : appData.recipes[0];
-    
-    if (!s) { 
-        el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📖</div><h3 class="empty-state-title">No recipes yet</h3><button class="btn btn-primary" onclick="openAddRecipeModal()">Add Recipe</button></div>'; 
-        return; 
-    }
-    
-    const time = (s.prepTime||0) + (s.cookTime||0);
-    const img = s.imageUrl ? `<img src="${s.imageUrl}" class="suggestion-image" onerror="this.style.display='none'">` : '';
-    const mealBadge = `<span class="meal-type-badge ${s.mealType || 'dinner'}">${getMealTypeEmoji(s.mealType)} ${(s.mealType || 'dinner').charAt(0).toUpperCase() + (s.mealType || 'dinner').slice(1)}</span>`;
-    
-    el.innerHTML = `<div class="suggestion-content">${img}<div class="suggestion-details">
-        <div class="suggestion-label"><span>${suggestionLabel}</span></div>
-        <h2 class="suggestion-recipe-name">${s.name}</h2>
-        <div class="suggestion-meta">
-            ${mealBadge}
-            <span class="meta-item">⏱️ ${time} min</span>
-            <span class="meta-item">👥 ${s.servings||4}</span>
-            ${s.lastCooked?`<span class="meta-item">📅 ${getDaysSinceCooked(s)} days ago</span>`:''}
-        </div>
-        <div class="suggestion-tags">${(s.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}<span class="tag dietary">Dairy-free</span><span class="tag dietary">Wheat-free</span></div>
-        ${s.sourceUrl?`<a href="${s.sourceUrl}" target="_blank" class="source-link" onclick="event.stopPropagation()">🔗 View Original Recipe</a>`:''}
-        <div class="suggestion-actions" style="margin-top:var(--space-md)">
-            <button class="btn btn-primary btn-large" onclick="cookRecipe('${s.id}')">🍳 Cook This</button>
-            <button class="btn btn-secondary btn-large" onclick="viewRecipeDetail('${s.id}')">View Recipe</button>
-            <button class="btn btn-secondary btn-large" onclick="renderDailyView();showToast('New suggestion!','success')">🔄 Different</button>
-        </div>
-    </div></div>`;
-    
-    const fg = document.getElementById('favorites-grid');
-    const fav = appData.recipes.filter(r => r.favorite);
-    fg.innerHTML = fav.length === 0 ? '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">💝</div><h3 class="empty-state-title">No favorites</h3></div>' : fav.map(renderRecipeCard).join('');
+    grid.innerHTML = suggestions.map((disc, idx) => {
+        const time = (disc.prepTime || 0) + (disc.cookTime || 0);
+        const siteName = extractSiteName(disc.sourceUrl);
+        return `<div class="recipe-card discover-card">
+            <div class="card-meal-badge">${getMealTypeEmoji(disc.mealType)}</div>
+            <div class="recipe-card-image-placeholder" style="height:120px;font-size:2.5rem;">${getDiscoverEmoji(disc)}</div>
+            <div class="recipe-card-body">
+                <h3 class="recipe-card-name">${disc.name}</h3>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0.5rem;line-height:1.4;">${disc.description}</p>
+                <div class="recipe-card-meta"><span>⏱️ ${time}m</span><span>👥 ${disc.servings || 4}</span></div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">📍 ${siteName}</div>
+                <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+                    <button class="btn btn-primary btn-small" onclick="addDiscoverRecipeByIndex(${idx})">+ Save</button>
+                    <a href="${disc.sourceUrl}" target="_blank" class="btn btn-secondary btn-small" onclick="event.stopPropagation()">View Recipe</a>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
 }
 
-async function cookRecipe(id) {
-    const r = appData.recipes.find(x => x.id === id);
-    if (r) { 
-        r.lastCooked = new Date().toISOString(); 
-        await FirebaseDB.updateRecipe(id, { lastCooked: r.lastCooked }); 
-        showToast(`Marked "${r.name}" as cooked!`, 'success'); 
-        showSyncIndicator('Synced ✓'); 
-        renderDailyView(); 
-    }
+function extractSiteName(url) {
+    if (!url) return '';
+    try {
+        const hostname = new URL(url).hostname.replace('www.', '');
+        // Prettify known sites
+        const names = {
+            'halfbakedharvest.com': 'Half Baked Harvest',
+            'cookingclassy.com': 'Cooking Classy',
+            'pinchofyum.com': 'Pinch of Yum',
+            'damndelicious.net': 'Damn Delicious',
+            'minimalistbaker.com': 'Minimalist Baker',
+            'budgetbytes.com': 'Budget Bytes',
+            'againstallgrain.com': 'Against All Grain',
+            'thedefineddish.com': 'The Defined Dish'
+        };
+        return names[hostname] || hostname;
+    } catch { return ''; }
 }
 
-// Add a discovered recipe to the collection
-async function addDiscoverRecipe() {
-    const disc = window.currentDiscoverSuggestion;
+function getDiscoverEmoji(r) {
+    const t = r.tags || [], n = r.name.toLowerCase();
+    if (t.includes('seafood') || /salmon|shrimp|cod|fish/.test(n)) return '🐟';
+    if (t.includes('chicken') || n.includes('chicken')) return '🍗';
+    if (t.includes('beef') || /beef|steak|bulgogi/.test(n)) return '🥩';
+    if (t.includes('pork')) return '🍖';
+    if (t.includes('vegetarian') || /tofu|bean|cauliflower/.test(n)) return '🥬';
+    if (t.includes('soup')) return '🍲';
+    if (t.includes('noodles') || t.includes('pasta')) return '🍜';
+    if (t.includes('bowl')) return '🥗';
+    return '🍽️';
+}
+
+async function addDiscoverRecipeByIndex(idx) {
+    const suggestions = getDailyDiscoverSuggestions();
+    const disc = suggestions[idx];
     if (!disc) return;
     
     const recipe = {
@@ -1467,16 +1443,27 @@ async function addDiscoverRecipe() {
         tags: disc.tags || [],
         sourceUrl: disc.sourceUrl || '',
         imageUrl: '',
-        favorite: false,
+        favorite: true,
         lastCooked: null
     };
     
     const newRecipe = await FirebaseDB.addRecipe(recipe);
     appData.recipes.push(newRecipe);
-    showToast(`Added "${recipe.name}" to your recipes!`, 'success');
+    showToast(`Saved "${recipe.name}"!`, 'success');
     showSyncIndicator('Synced ✓');
     renderDailyView();
     renderRecipesView();
+}
+
+async function cookRecipe(id) {
+    const r = appData.recipes.find(x => x.id === id);
+    if (r) { 
+        r.lastCooked = new Date().toISOString(); 
+        await FirebaseDB.updateRecipe(id, { lastCooked: r.lastCooked }); 
+        showToast(`Marked "${r.name}" as cooked!`, 'success'); 
+        showSyncIndicator('Synced ✓'); 
+        renderDailyView(); 
+    }
 }
 
 // Search for a recipe online
@@ -1542,6 +1529,59 @@ function renderWeeklyView() {
 }
 
 function changeWeek(o) { currentWeekOffset += o; renderWeeklyView(); }
+
+// Clear all meals from the current week
+async function clearWeeklyPlan() {
+    if (!confirm('Clear all meals from this week?')) return;
+    
+    const today = new Date(), start = new Date(today);
+    start.setDate(today.getDate() - today.getDay() + currentWeekOffset * 7);
+    
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + i);
+        const dk = date.toISOString().split('T')[0];
+        delete appData.weeklyPlan[dk];
+    }
+    
+    await FirebaseDB.saveWeeklyPlan(appData.weeklyPlan);
+    showToast('Weekly plan cleared!', 'success');
+    showSyncIndicator('Synced ✓');
+    renderWeeklyView();
+    renderShoppingView();
+}
+
+// Auto-mark recipes as cooked when their planned day has passed
+async function autoMarkCookedRecipes() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let updated = false;
+    
+    for (const [dateKey, dayPlan] of Object.entries(appData.weeklyPlan)) {
+        const planDate = new Date(dateKey + 'T23:59:59');
+        if (planDate >= today) continue; // Day hasn't ended yet
+        
+        let meals = [];
+        if (Array.isArray(dayPlan)) {
+            meals = dayPlan;
+        } else {
+            meals = [...(dayPlan.lunch || []), ...(dayPlan.dinner || [])];
+        }
+        
+        for (const rid of meals) {
+            const r = appData.recipes.find(x => x.id === rid);
+            if (r && (!r.lastCooked || new Date(r.lastCooked) < new Date(dateKey))) {
+                r.lastCooked = new Date(dateKey).toISOString();
+                await FirebaseDB.updateRecipe(rid, { lastCooked: r.lastCooked });
+                updated = true;
+            }
+        }
+    }
+    
+    if (updated) {
+        showSyncIndicator('Auto-updated cooked dates ✓');
+    }
+}
 
 async function generateWeeklyPlan() {
     const today = new Date(), start = new Date(today);
@@ -2062,7 +2102,7 @@ function generateShoppingList() {
     return cats;
 }
 
-// Simplify ingredient text to just the item name
+// Simplify ingredient text to just the core item name
 function simplifyIngredient(text) {
     if (!text) return '';
     let s = text;
@@ -2070,22 +2110,26 @@ function simplifyIngredient(text) {
     // Remove leading quantities: "2 cups", "1/2 lb", "1.5", "2-3", "one", etc.
     s = s.replace(/^[\d\s\/\.\-½¼¾⅓⅔⅛]+\s*/, '');
     
-    // Remove measurement units at the start
-    s = s.replace(/^(cups?|tablespoons?|teaspoons?|tbsp|tsp|ounces?|oz|pounds?|lbs?|cloves?|cans?|bags?|bunche?s?|stalks?|heads?|sprigs?|slices?|pieces?|pinche?s?|dashes?|handfuls?|quarts?|pints?|gallons?|liters?|ml|inch(es)?|cm|medium|large|small|whole)\s+/i, '');
-    // Also remove "of" after units: "cups of"
+    // Remove measurement units at the start (including repeated after removing qty)
+    s = s.replace(/^(cups?|tablespoons?|teaspoons?|tbsp|tsp|ounces?|oz|pounds?|lbs?|cloves?|cans?|bags?|bunche?s?|stalks?|heads?|sprigs?|slices?|pieces?|pinche?s?|dashes?|handfuls?|quarts?|pints?|gallons?|liters?|ml|inch(es)?|cm|medium|large|small|whole|sticks?|containers?|packages?|jars?|bottles?)\s+/i, '');
     s = s.replace(/^of\s+/i, '');
     
     // Remove parenthetical notes: "(about 2 cups)", "(drained)", "(optional)"
     s = s.replace(/\s*\([^)]*\)\s*/g, ' ');
     
-    // Remove trailing prep instructions after comma: ", chopped", ", diced", ", minced"
-    s = s.replace(/,\s*(freshly\s+)?(finely\s+)?(chopped|diced|minced|sliced|grated|shredded|crushed|julienned|peeled|deveined|trimmed|halved|quartered|cubed|torn|zested|juiced|melted|softened|divided|packed|sifted|to taste|for garnish|for serving|or more|as needed|plus more|optional).*$/i, '');
+    // Remove EVERYTHING after a comma — this catches "sweet potatoes, cut into 1 inch" etc.
+    s = s.replace(/,.*$/, '');
     
-    // Remove trailing prep after certain keywords without comma
-    s = s.replace(/\s+(chopped|diced|minced|sliced|grated|shredded|thinly sliced|finely chopped|roughly chopped|to taste|for garnish|for serving|optional|divided|at room temperature)$/i, '');
+    // Remove trailing prep/descriptor phrases
+    s = s.replace(/\s+(chopped|diced|minced|sliced|grated|shredded|crushed|julienned|peeled|deveined|trimmed|halved|quartered|cubed|torn|zested|juiced|melted|softened|divided|packed|sifted|to taste|for garnish|for serving|or more|as needed|plus more|optional|thinly|finely|roughly|freshly|cut into.*|broken into.*|torn into.*|at room temp.*)$/i, '');
+    
+    // Remove size/shape descriptors
+    s = s.replace(/\b(thin|thick|fine|coarse|fresh|frozen|dried|canned|boneless|skinless|extra.?virgin|low.?sodium|unsalted|salted|raw|cooked|roasted|toasted)\b\s*/gi, '');
+    
+    // Clean up extra whitespace
+    s = s.replace(/\s+/g, ' ').trim();
     
     // Capitalize first letter
-    s = s.trim();
     if (s.length > 0) {
         s = s.charAt(0).toUpperCase() + s.slice(1);
     }
@@ -2244,7 +2288,7 @@ function filterRecipes() { renderAllRecipes(); }
 
 async function toggleFavorite(id) {
     const r = appData.recipes.find(x => x.id === id);
-    if (r) { r.favorite = !r.favorite; await FirebaseDB.updateRecipe(id, { favorite: r.favorite }); showToast(r.favorite ? 'Added to favorites' : 'Removed', 'success'); showSyncIndicator('Synced ✓'); renderAllRecipes(); renderDailyView(); }
+    if (r) { r.favorite = !r.favorite; await FirebaseDB.updateRecipe(id, { favorite: r.favorite }); showToast(r.favorite ? 'Saved!' : 'Removed from saved', 'success'); showSyncIndicator('Synced ✓'); renderAllRecipes(); renderDailyView(); }
 }
 
 // ===== RECIPE DETAIL =====
@@ -2627,6 +2671,10 @@ async function initializeApp() {
         appData.weeklyPlan = plan; 
         appData.checkedItems = settings.checkedItems || [];
         appData.pantryStock = settings.pantryStock || [];
+        
+        // Auto-mark recipes as cooked if their planned day has passed
+        await autoMarkCookedRecipes();
+        
         initNavigation(); renderDailyView();
         document.getElementById('loading-screen').classList.add('hidden');
     } catch (e) { console.error(e); showToast('Failed to load', 'error'); document.getElementById('loading-screen').classList.add('hidden'); }
