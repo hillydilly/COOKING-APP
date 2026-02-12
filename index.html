@@ -1041,7 +1041,7 @@
                 <h3 class="modal-title">Recipe Details</h3>
                 <button class="modal-close" onclick="closeModal('recipe-detail-modal')">✕</button>
             </div>
-            <div id="recipe-detail-content"></div>
+            <div class="modal-body" style="padding:0;" id="recipe-detail-content"></div>
         </div>
     </div>
 
@@ -1316,21 +1316,34 @@ function setSuggestionType(type) {
 // ===== DISCOVER NEW RECIPES =====
 // Actual recipes from dairy-free/gluten-free friendly sites
 const DISCOVER_RECIPES = [
+    // Half Baked Harvest
     { name: 'Coconut Curry Shrimp', prepTime: 10, cookTime: 20, servings: 4, mealType: 'dinner', tags: ['dinner', 'seafood', 'thai', 'curry'], description: 'Creamy coconut curry with plump shrimp, bell peppers, and fresh basil served over rice.', sourceUrl: 'https://www.halfbakedharvest.com/coconut-curry-shrimp/' },
-    { name: 'Grilled Lemon Herb Chicken', prepTime: 15, cookTime: 25, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'grilled', 'mediterranean'], description: 'Juicy chicken thighs marinated in lemon, garlic, and fresh herbs.', sourceUrl: 'https://www.halfbakedharvest.com/grilled-lemon-herb-chicken/' },
-    { name: 'Asian Chicken Lettuce Wraps', prepTime: 10, cookTime: 15, servings: 4, mealType: 'lunch', tags: ['lunch', 'chicken', 'asian', 'low-carb'], description: 'Savory ground chicken with water chestnuts in crisp lettuce cups.', sourceUrl: 'https://www.halfbakedharvest.com/asian-chicken-lettuce-wraps/' },
-    { name: 'Chimichurri Steak with Potatoes', prepTime: 20, cookTime: 20, servings: 6, mealType: 'dinner', tags: ['dinner', 'beef', 'argentinian', 'grilled'], description: 'Perfectly grilled steak topped with vibrant herb chimichurri and crispy potatoes.', sourceUrl: 'https://www.halfbakedharvest.com/chimichurri-steak/' },
     { name: 'Thai Basil Chicken', prepTime: 10, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'thai', 'quick'], description: 'Fragrant Thai basil chicken stir-fry with chilies and garlic.', sourceUrl: 'https://www.halfbakedharvest.com/thai-basil-chicken/' },
-    { name: 'Mediterranean Salmon', prepTime: 15, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'seafood', 'mediterranean', 'healthy'], description: 'Baked salmon with sun-dried tomatoes, olives, and capers.', sourceUrl: 'https://www.halfbakedharvest.com/mediterranean-salmon/' },
     { name: 'Vietnamese Caramel Pork Bowls', prepTime: 15, cookTime: 45, servings: 6, mealType: 'dinner', tags: ['dinner', 'pork', 'vietnamese', 'asian'], description: 'Tender caramelized pork over rice with fresh herbs and pickled vegetables.', sourceUrl: 'https://www.halfbakedharvest.com/vietnamese-caramel-pork/' },
-    { name: 'Greek Chicken Souvlaki', prepTime: 30, cookTime: 12, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'greek', 'grilled'], description: 'Marinated chicken skewers with lemon, oregano, and garlic served with tzatziki.', sourceUrl: 'https://www.halfbakedharvest.com/greek-chicken-souvlaki/' },
-    { name: 'Tom Kha Gai (Coconut Chicken Soup)', prepTime: 10, cookTime: 25, servings: 6, mealType: 'lunch', tags: ['lunch', 'soup', 'thai', 'chicken'], description: 'Creamy Thai coconut soup with chicken, mushrooms, and galangal.', sourceUrl: 'https://www.halfbakedharvest.com/tom-kha-gai/' },
     { name: 'Honey Garlic Salmon', prepTime: 5, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'seafood', 'quick', 'asian-fusion'], description: 'Quick pan-seared salmon with a sticky honey garlic glaze.', sourceUrl: 'https://www.halfbakedharvest.com/honey-garlic-salmon/' },
-    { name: 'Chicken Shawarma Bowls', prepTime: 15, cookTime: 20, servings: 4, mealType: 'lunch', tags: ['lunch', 'chicken', 'mediterranean', 'healthy'], description: 'Spiced chicken shawarma over rice with hummus, vegetables, and tahini.', sourceUrl: 'https://www.halfbakedharvest.com/chicken-shawarma-bowls/' },
-    { name: 'Italian Meatballs in Marinara', prepTime: 20, cookTime: 25, servings: 6, mealType: 'dinner', tags: ['dinner', 'beef', 'italian'], description: 'Tender herb meatballs simmered in homemade marinara sauce.', sourceUrl: 'https://www.halfbakedharvest.com/italian-meatballs/' },
-    { name: 'Sesame Chicken Stir Fry', prepTime: 15, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'asian', 'quick'], description: 'Crispy chicken in a sweet and savory sesame sauce with vegetables.', sourceUrl: 'https://www.halfbakedharvest.com/sesame-chicken/' },
-    { name: 'Tuscan White Bean Soup', prepTime: 10, cookTime: 30, servings: 6, mealType: 'lunch', tags: ['lunch', 'soup', 'italian', 'vegetarian'], description: 'Hearty white bean soup with kale, tomatoes, and Italian herbs.', sourceUrl: 'https://www.halfbakedharvest.com/tuscan-white-bean-soup/' },
-    { name: 'Jamaican Jerk Chicken', prepTime: 15, cookTime: 25, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'caribbean', 'spicy'], description: 'Spicy jerk-seasoned grilled chicken with mango salsa.', sourceUrl: 'https://www.halfbakedharvest.com/jamaican-jerk-chicken/' }
+    { name: 'Jamaican Jerk Chicken', prepTime: 15, cookTime: 25, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'caribbean', 'spicy'], description: 'Spicy jerk-seasoned grilled chicken with mango salsa.', sourceUrl: 'https://www.halfbakedharvest.com/jamaican-jerk-chicken/' },
+    // Cooking Classy
+    { name: 'Lemon Rosemary Grilled Chicken', prepTime: 15, cookTime: 20, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'grilled', 'mediterranean'], description: 'Tender grilled chicken breasts with bright lemon and fresh rosemary.', sourceUrl: 'https://www.cookingclassy.com/grilled-lemon-rosemary-chicken/' },
+    { name: 'Chicken Stir Fry with Broccoli', prepTime: 15, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'asian', 'quick'], description: 'Quick weeknight stir fry with crisp broccoli in a savory ginger garlic sauce.', sourceUrl: 'https://www.cookingclassy.com/chicken-stir-fry/' },
+    { name: 'Greek Salmon Bowl', prepTime: 15, cookTime: 15, servings: 4, mealType: 'lunch', tags: ['lunch', 'seafood', 'greek', 'healthy'], description: 'Pan-seared salmon over greens with cucumber, tomato, olives, and lemon herb dressing.', sourceUrl: 'https://www.cookingclassy.com/greek-salmon-bowl/' },
+    { name: 'Thai Chicken Lettuce Wraps', prepTime: 10, cookTime: 10, servings: 4, mealType: 'lunch', tags: ['lunch', 'chicken', 'thai', 'low-carb'], description: 'Savory chicken in crisp lettuce cups with peanut sauce and fresh herbs.', sourceUrl: 'https://www.cookingclassy.com/thai-chicken-lettuce-wraps/' },
+    // Pinch of Yum
+    { name: 'Cauliflower Tikka Masala', prepTime: 15, cookTime: 30, servings: 4, mealType: 'dinner', tags: ['dinner', 'vegetarian', 'indian', 'curry'], description: 'Roasted cauliflower in a rich, creamy spiced tomato sauce over rice.', sourceUrl: 'https://pinchofyum.com/cauliflower-tikka-masala' },
+    { name: 'Rainbow Peanut Noodles', prepTime: 20, cookTime: 10, servings: 4, mealType: 'lunch', tags: ['lunch', 'noodles', 'asian', 'vegetarian'], description: 'Colorful rice noodles tossed with crunchy veggies and a creamy peanut lime dressing.', sourceUrl: 'https://pinchofyum.com/rainbow-vegetarian-pad-thai' },
+    { name: 'Cilantro Lime Chicken with Avocado Salsa', prepTime: 20, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'mexican', 'fresh'], description: 'Zesty marinated chicken topped with a chunky avocado tomato salsa.', sourceUrl: 'https://pinchofyum.com/cilantro-lime-chicken-with-avocado-salsa' },
+    // Damn Delicious
+    { name: 'Sheet Pan Lemon Herb Salmon', prepTime: 10, cookTime: 20, servings: 4, mealType: 'dinner', tags: ['dinner', 'seafood', 'quick', 'one-pan'], description: 'Easy one-pan salmon with roasted asparagus and lemon herb seasoning.', sourceUrl: 'https://damndelicious.net/2019/04/02/sheet-pan-lemon-herb-salmon/' },
+    { name: 'Korean Beef Bulgogi', prepTime: 15, cookTime: 10, servings: 4, mealType: 'dinner', tags: ['dinner', 'beef', 'korean', 'quick'], description: 'Thinly sliced beef marinated in a sweet and savory Korean sauce, grilled to perfection.', sourceUrl: 'https://damndelicious.net/2019/04/21/korean-beef-bulgogi/' },
+    // Minimalist Baker
+    { name: 'Crispy Peanut Tofu Stir Fry', prepTime: 15, cookTime: 20, servings: 4, mealType: 'dinner', tags: ['dinner', 'vegetarian', 'asian', 'stir-fry'], description: 'Extra crispy baked tofu with vegetables in a sticky peanut ginger sauce.', sourceUrl: 'https://minimalistbaker.com/crispy-peanut-tofu-cauliflower-rice-stir-fry/' },
+    { name: 'Mediterranean Sweet Potato Bowls', prepTime: 15, cookTime: 30, servings: 4, mealType: 'lunch', tags: ['lunch', 'vegetarian', 'mediterranean', 'bowl'], description: 'Roasted sweet potatoes with tahini, chickpeas, greens, and lemon garlic dressing.', sourceUrl: 'https://minimalistbaker.com/mediterranean-baked-sweet-potatoes/' },
+    // Budget Bytes
+    { name: 'Chicken Carnitas Bowls', prepTime: 10, cookTime: 180, servings: 6, mealType: 'dinner', tags: ['dinner', 'chicken', 'mexican', 'slow-cooker'], description: 'Slow-cooked shredded chicken with cumin and chili, served over rice with fresh toppings.', sourceUrl: 'https://www.budgetbytes.com/chicken-carnitas/' },
+    // Against All Grain
+    { name: 'Tuscan Chicken Skillet', prepTime: 10, cookTime: 25, servings: 4, mealType: 'dinner', tags: ['dinner', 'chicken', 'italian', 'one-pan'], description: 'Seared chicken in a creamy sun-dried tomato and spinach sauce.', sourceUrl: 'https://againstallgrain.com/tuscan-chicken/' },
+    // The Defined Dish
+    { name: 'Green Chile Chicken Soup', prepTime: 15, cookTime: 30, servings: 6, mealType: 'lunch', tags: ['lunch', 'soup', 'mexican', 'chicken'], description: 'Hearty chicken soup loaded with green chiles, lime, and fresh cilantro.', sourceUrl: 'https://thedefineddish.com/green-chile-chicken-soup/' },
+    { name: 'Teriyaki Salmon with Pineapple', prepTime: 10, cookTime: 15, servings: 4, mealType: 'dinner', tags: ['dinner', 'seafood', 'asian', 'quick'], description: 'Glazed salmon with homemade teriyaki and caramelized pineapple rings.', sourceUrl: 'https://thedefineddish.com/teriyaki-salmon/' }
 ];
 
 function getDiscoverSuggestion() {
@@ -2030,21 +2043,54 @@ function generateShoppingList() {
         meals.forEach(rid => {
             const r = appData.recipes.find(x => x.id === rid);
             r?.ingredients?.forEach(ing => { 
-                // Clean the ingredient text before displaying
                 const cleanedIng = cleanIngredientText(ing);
-                if (!cleanedIng) return; // Skip empty lines
+                if (!cleanedIng) return;
                 
-                // Create a stable ID based on the cleaned ingredient text
-                const cleanName = cleanedIng.toLowerCase().trim();
+                // Simplify: extract just the item name
+                const simplified = simplifyIngredient(cleanedIng);
+                if (!simplified) return;
+                
+                const cleanName = simplified.toLowerCase().trim();
                 const stableId = 'ing_' + cleanName.replace(/[^a-z0-9]/g, '_').substring(0, 50);
                 if (!ings[cleanName]) {
-                    ings[cleanName] = { id: stableId, name: cleanedIng, category: categorize(cleanedIng) }; 
+                    ings[cleanName] = { id: stableId, name: simplified, category: categorize(simplified) }; 
                 }
             });
         });
     });
     Object.values(ings).forEach(i => { if (!cats[i.category]) cats[i.category] = []; cats[i.category].push(i); });
     return cats;
+}
+
+// Simplify ingredient text to just the item name
+function simplifyIngredient(text) {
+    if (!text) return '';
+    let s = text;
+    
+    // Remove leading quantities: "2 cups", "1/2 lb", "1.5", "2-3", "one", etc.
+    s = s.replace(/^[\d\s\/\.\-½¼¾⅓⅔⅛]+\s*/, '');
+    
+    // Remove measurement units at the start
+    s = s.replace(/^(cups?|tablespoons?|teaspoons?|tbsp|tsp|ounces?|oz|pounds?|lbs?|cloves?|cans?|bags?|bunche?s?|stalks?|heads?|sprigs?|slices?|pieces?|pinche?s?|dashes?|handfuls?|quarts?|pints?|gallons?|liters?|ml|inch(es)?|cm|medium|large|small|whole)\s+/i, '');
+    // Also remove "of" after units: "cups of"
+    s = s.replace(/^of\s+/i, '');
+    
+    // Remove parenthetical notes: "(about 2 cups)", "(drained)", "(optional)"
+    s = s.replace(/\s*\([^)]*\)\s*/g, ' ');
+    
+    // Remove trailing prep instructions after comma: ", chopped", ", diced", ", minced"
+    s = s.replace(/,\s*(freshly\s+)?(finely\s+)?(chopped|diced|minced|sliced|grated|shredded|crushed|julienned|peeled|deveined|trimmed|halved|quartered|cubed|torn|zested|juiced|melted|softened|divided|packed|sifted|to taste|for garnish|for serving|or more|as needed|plus more|optional).*$/i, '');
+    
+    // Remove trailing prep after certain keywords without comma
+    s = s.replace(/\s+(chopped|diced|minced|sliced|grated|shredded|thinly sliced|finely chopped|roughly chopped|to taste|for garnish|for serving|optional|divided|at room temperature)$/i, '');
+    
+    // Capitalize first letter
+    s = s.trim();
+    if (s.length > 0) {
+        s = s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    
+    return s;
 }
 
 // Clean ingredient text - removes checkboxes, bullets, and other artifacts
